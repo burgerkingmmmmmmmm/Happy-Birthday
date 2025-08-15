@@ -1,0 +1,347 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>hm</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #gameContainer {
+            width: 800px;
+            height: 600px;
+            background: #5C94FC;
+            border: 2px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10;
+            text-align: center;
+        }
+        #ui h1 {
+            color: #ffff00;
+            font-size: 30px;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px 0px #000;
+            line-height: 1.2;
+            padding: 0 50px;
+        }
+        #playBtn {
+            padding: 15px 30px;
+            background: #ff6b6b;
+            color: white;
+            border: 3px solid #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-shadow: 2px 2px 0px #000;
+        }
+        #playBtn:hover {
+            background: #ff5252;
+            transform: scale(1.1);
+        }
+        .dialogue-box {
+            position: absolute;
+            background: white;
+            border: 4px solid #000;
+            border-radius: 10px;
+            padding: 15px;
+            color: #000;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 4px 4px 8px rgba(0,0,0,0.5);
+            z-index: 30;
+            display: none;
+            text-align: center;
+        }
+        .dialogue-box::after {
+            content: '';
+            position: absolute;
+            bottom: 25px;
+            right: -25px;
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-left: 15px solid white;
+            z-index: 31;
+        }
+        #messageScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 40;
+            text-align: center;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+        #messageScreen p {
+            color: #ffff00;
+            font-size: 24px;
+            line-height: 1.4;
+            margin: 0;
+            text-shadow: 2px 2px 0px #000;
+            max-width: 700px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="ui">
+            <h1>I too was about to drop a nonchalant "Happy Birthday" text, but then I thought, let's do something silly for my ex—good friend. So, well birthday girl, click that play button.</h1>
+            <button id="playBtn">PLAY</button>
+        </div>
+        <div id="dialogueBox" class="dialogue-box">
+            Happy 19th 🦜
+        </div>
+        <div id="messageScreen">
+            <p> was going to make you a greeting card, but then I remembered how your mom sometimes checks your bag to take out your scarf so figured this would be a better idea 
+and "Happy Birthday Zahara"</p>
+        </div>
+    </div>
+
+    <!-- Background Music -->
+    <audio id="bgMusic" src="bgmusic.mp3" loop></audio>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const ui = document.getElementById('ui');
+        const playBtn = document.getElementById('playBtn');
+        const dialogueBox = document.getElementById('dialogueBox');
+        const messageScreen = document.getElementById('messageScreen');
+        const bgMusic = document.getElementById('bgMusic');
+
+        let currentScene = 'title';
+        let sceneTimer = 0;
+
+        // Make him faster
+        const guySpeed = 15; // was 5
+
+        let shopOrder = [5, 0, 4, 3, 6, 2, 1];
+        let currentShopIndex = 0;
+        let guyX = 100;
+        let walkingFrame = 0;
+        let endingGuyX = 0;
+
+        const images = {
+            guyWalkingAlone: null,
+            girlWaitingAlone: null,
+            sevenElevenShop: null,
+            momosAddaShop: null,
+            laPinozPizzaShop: null,
+            yevleChaiShop: null,
+            burgerKingShop: null,
+            waffleShop: null,
+            naturalsShop: null
+        };
+        const imagePaths = {
+            guyWalkingAlone: 'start.jpg',
+            girlWaitingAlone: 'end.png',
+            sevenElevenShop: 'seven11.png',
+            momosAddaShop: 'momos.png',
+            laPinozPizzaShop: 'lapinoz.png',
+            yevleChaiShop: 'yevle chai.png',
+            burgerKingShop: 'burger.png',
+            waffleShop: 'waffleshop.png',
+            naturalsShop: 'Naturals.jpg'
+        };
+
+        function loadImages() {
+            let loadedCount = 0;
+            const totalImages = Object.keys(images).length;
+            for (const key in imagePaths) {
+                const img = new Image();
+                img.onload = () => {
+                    images[key] = img;
+                    loadedCount++;
+                    if (loadedCount === totalImages) gameLoop();
+                };
+                img.onerror = () => {
+                    console.error(`Failed to load image: ${imagePaths[key]}`);
+                    loadedCount++;
+                    if (loadedCount === totalImages) gameLoop();
+                }
+                img.src = imagePaths[key];
+            }
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = '#5C94FC';
+            ctx.fillRect(0, 0, 800, 400);
+            ctx.fillStyle = '#FFF';
+            for (let i = 0; i < 4; i++) {
+                const x = i * 200 + 50;
+                const y = 50 + Math.sin(Date.now() * 0.001 + i) * 10;
+                drawCloud(x, y);
+            }
+            ctx.fillStyle = '#00AA00';
+            ctx.fillRect(0, 400, 800, 200);
+            ctx.fillStyle = '#008800';
+            for (let x = 0; x < 800; x += 40) {
+                for (let y = 400; y < 600; y += 40) {
+                    if ((x + y) % 80 === 0) ctx.fillRect(x, y, 20, 20);
+                }
+            }
+        }
+
+        function drawCloud(x, y) {
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            ctx.arc(x + 25, y, 25, 0, Math.PI * 2);
+            ctx.arc(x + 50, y, 20, 0, Math.PI * 2);
+            ctx.arc(x + 25, y - 15, 20, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawGuyOnScooter(x, y, scale = 1.5, frame = 0) {
+            if (images.guyWalkingAlone) {
+                const img = images.guyWalkingAlone;
+                const imgWidth = 64;
+                const imgHeight = 120;
+                const bobbing = Math.sin(frame * 1.5) * 5;
+                ctx.drawImage(img, x, y + bobbing, imgWidth * scale, imgHeight * scale);
+            }
+        }
+
+        function drawGirlSitting(x, y, scale = 1.2) {
+            if (images.girlWaitingAlone) {
+                const img = images.girlWaitingAlone;
+                const imgWidth = 64;
+                const imgHeight = 120;
+                ctx.drawImage(img, x, y, imgWidth * scale, imgHeight * scale);
+            }
+        }
+
+        function drawShop(shopIndex) {
+            const shopImageKeys = [
+                'sevenElevenShop', 'momosAddaShop', 'laPinozPizzaShop',
+                'yevleChaiShop', 'burgerKingShop', 'waffleShop', 'naturalsShop'
+            ];
+            const imageKey = shopImageKeys[shopIndex];
+            if (images[imageKey]) {
+                const img = images[imageKey];
+                const width = 400;
+                const height = 400;
+                const x = (canvas.width - width) / 2;
+                ctx.drawImage(img, x, 0, width, height);
+            }
+        }
+
+        function showDialogue(x, y) {
+            dialogueBox.style.display = 'block';
+            dialogueBox.style.left = x + 'px';
+            dialogueBox.style.top = y + 'px';
+        }
+
+        function hideDialogue() { dialogueBox.style.display = 'none'; }
+        function showMessage() { messageScreen.style.display = 'flex'; }
+        function hideMessage() { messageScreen.style.display = 'none'; }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, 800, 600);
+            sceneTimer += 1 / 60;
+            switch (currentScene) {
+                case 'title':
+                    drawBackground();
+                    hideDialogue();
+                    hideMessage();
+                    break;
+                case 'walking':
+                    drawBackground();
+                    hideDialogue();
+                    hideMessage();
+                    if (currentShopIndex < shopOrder.length) drawShop(shopOrder[currentShopIndex]);
+                    walkingFrame += 0.5;
+                    drawGuyOnScooter(guyX, 280, 1.5, walkingFrame);
+                    guyX += guySpeed;
+                    if (guyX > 800) {
+                        if (currentShopIndex < shopOrder.length - 1) {
+                            currentShopIndex++;
+                            guyX = -150;
+                        } else {
+                            currentScene = 'ending';
+                            sceneTimer = 0;
+                            endingGuyX = -150;
+                        }
+                    }
+                    break;
+                case 'ending':
+                    drawBackground();
+                    drawGirlSitting(650, 280, 1.2);
+                    if (endingGuyX < 550) {
+                        walkingFrame += 0.5;
+                        endingGuyX += guySpeed;
+                        drawGuyOnScooter(endingGuyX, 280, 1.5, walkingFrame);
+                    } else {
+                        drawGuyOnScooter(550, 280, 1.5, 0);
+                        showDialogue(300, 250);
+                    }
+                    if (sceneTimer > 3 && sceneTimer <= 8) {
+                        hideDialogue();
+                        showMessage();
+                    } else if (sceneTimer > 8) {
+                        hideMessage();
+                        setTimeout(() => {
+                            currentScene = 'title';
+                            sceneTimer = 0;
+                            ui.style.display = 'flex';
+                        }, 1000);
+                    }
+                    break;
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        playBtn.addEventListener('click', () => {
+            ui.style.display = 'none';
+            currentScene = 'walking';
+            sceneTimer = 0;
+            guyX = -150;
+            shopOrder = [5, 0, 4, 3, 6, 2, 1];
+            currentShopIndex = 0;
+            bgMusic.play().catch(err => console.log("Music play blocked:", err));
+        });
+
+        loadImages();
+    </script>
+</body>
+</html>
