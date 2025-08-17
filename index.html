@@ -107,8 +107,9 @@
     <div id="dialogueBox" class="dialogue-box">Happy 19th 🦜</div>
 
     <div id="messageScreen">
-        <p>thought about making you a greeting card like before, but then I remembered how your mom sometimes checks your bag to take out your scarf so figured this would be a better idea to wish you
-so "Happy Birthday Zahara" </p>
+        <p>thought about making you a greeting card like before, but then I remembered how your mom sometimes goes through your bag to take out your scarf so that is how i came up with this  
+so yeah in a very nonchalant way </p>
+       <p> "Happy Birthday" </p>
     </div>
 </div>
 
@@ -157,7 +158,7 @@ resizeGame();
 
 let currentScene = 'title';
 let sceneTimer = 0;
-const guySpeed = 15;
+const guySpeed = 11;
 let shopOrder = [5, 0, 4, 3, 6, 2, 1];
 let currentShopIndex = 0;
 let guyX = 100;
@@ -292,7 +293,7 @@ function gameLoop() {
                 hideDialogue();
                 showMessage();
             } else if (sceneTimer > 8) {
-                // Stop here with final message showing
+                
                 cancelAnimationFrame(animationId);
                 return;
             }
@@ -316,4 +317,5 @@ loadImages();
 </script>
 </body>
 </html>
+
 
